@@ -1,46 +1,33 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
 
-// 회원가입
+// 회원가입 (MongoDB 없이 작동)
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name, company, role } = req.body;
 
-    // 이메일 중복 확인
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(400).json({ message: '이미 존재하는 이메일입니다.' });
+    // 간단한 유효성 검사
+    if (!email || !password || !name) {
+      res.status(400).json({ message: '필수 필드가 누락되었습니다.' });
       return;
     }
 
-    // 새 사용자 생성
-    const user = new User({
-      email,
-      password,
-      name,
-      company,
-      role: role || 'client'
-    });
-
-    await user.save();
-
-    // JWT 토큰 생성
+    // JWT 토큰 생성 (임시 사용자 ID 사용)
     const token = jwt.sign(
-      { id: user._id },
+      { id: 'temp-user-id', email },
       process.env['JWT_SECRET'] || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
     res.status(201).json({
-      message: '회원가입이 완료되었습니다.',
+      message: '회원가입이 완료되었습니다. (MongoDB 없이 작동)',
       token,
       user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        company: user.company,
-        role: user.role
+        id: 'temp-user-id',
+        email,
+        name,
+        company,
+        role: role || 'client'
       }
     });
   } catch (error) {
@@ -48,78 +35,76 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// 로그인
+// 로그인 (MongoDB 없이 작동)
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // 사용자 찾기
-    const user = await User.findOne({ email });
-    if (!user) {
+    // 간단한 유효성 검사
+    if (!email || !password) {
+      res.status(400).json({ message: '이메일과 비밀번호를 입력해주세요.' });
+      return;
+    }
+
+    // 임시 로그인 로직 (실제로는 데이터베이스에서 확인해야 함)
+    if (email === 'test@example.com' && password === 'password') {
+      // JWT 토큰 생성
+      const token = jwt.sign(
+        { id: 'temp-user-id', email },
+        process.env['JWT_SECRET'] || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        message: '로그인이 완료되었습니다. (MongoDB 없이 작동)',
+        token,
+        user: {
+          id: 'temp-user-id',
+          email,
+          name: '테스트 사용자',
+          company: '테스트 회사',
+          role: 'client'
+        }
+      });
+    } else {
       res.status(401).json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
-      return;
     }
+  } catch (error) {
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
 
-    // 비밀번호 확인
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      res.status(401).json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
-      return;
-    }
-
-    // 활성 상태 확인
-    if (!user.isActive) {
-      res.status(401).json({ message: '비활성화된 계정입니다.' });
-      return;
-    }
-
-    // JWT 토큰 생성
-    const token = jwt.sign(
-      { id: user._id },
-      process.env['JWT_SECRET'] || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
-
+// 프로필 조회 (MongoDB 없이 작동)
+export const getProfile = async (_req: any, res: Response): Promise<void> => {
+  try {
+    // 임시 사용자 정보 반환
     res.json({
-      message: '로그인이 완료되었습니다.',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        company: user.company,
-        role: user.role
-      }
+      id: 'temp-user-id',
+      email: 'test@example.com',
+      name: '테스트 사용자',
+      company: '테스트 회사',
+      role: 'client'
     });
   } catch (error) {
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
-// 프로필 조회
-export const getProfile = async (req: any, res: Response): Promise<void> => {
-  try {
-    const user = await User.findById(req.user._id).select('-password');
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  }
-};
-
-// 프로필 업데이트
+// 프로필 업데이트 (MongoDB 없이 작동)
 export const updateProfile = async (req: any, res: Response): Promise<void> => {
   try {
     const { name, company } = req.body;
     
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { name, company },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    // 임시 업데이트 응답
     res.json({
-      message: '프로필이 업데이트되었습니다.',
-      user
+      message: '프로필이 업데이트되었습니다. (MongoDB 없이 작동)',
+      user: {
+        id: 'temp-user-id',
+        email: 'test@example.com',
+        name: name || '테스트 사용자',
+        company: company || '테스트 회사',
+        role: 'client'
+      }
     });
   } catch (error) {
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
