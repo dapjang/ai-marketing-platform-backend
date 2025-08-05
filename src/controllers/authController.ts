@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { query, transaction } from '../config/database-sqlite';
+import { query, transaction } from '../config/database';
 
 // 회원가입
 export const register = async (req: Request, res: Response): Promise<void> => {

@@ -3,9 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { connectDatabase } from './config/database-sqlite';
+import { connectDatabase } from './config/database';
 import authRoutes from './routes/auth';
 import campaignRoutes from './routes/campaigns';
+import aiContentRoutes from './routes/aiContent';
 
 // 환경 변수 로드
 dotenv.config();
@@ -16,8 +17,22 @@ const PORT = process.env.PORT || 3000;
 // 미들웨어 설정
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
-  credentials: true
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:3001', 
+    'http://localhost:3002', 
+    'http://localhost:3003', 
+    'http://localhost:3005',
+    'https://frontend-isiu4zy33-dapjangs-projects.vercel.app',
+    'https://frontend-e2h2vm0b5-dapjangs-projects.vercel.app',
+    'https://frontend-isiu4zy33-dapjangs-projects.vercel.app',
+    'https://frontend-e2h2vm0b5-dapjangs-projects.vercel.app',
+    'https://dapjangs-projects.vercel.app',
+    'https://*.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Rate limiting
@@ -34,9 +49,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 기본 라우트
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'AI 마케팅 플랫폼 API 서버',
+    message: '답장플랫폼 API 서버에 오신 것을 환영합니다!',
     version: '1.0.0',
-    status: 'running'
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -50,6 +65,7 @@ app.get('/health', (req, res) => {
 // API 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/ai-content', aiContentRoutes);
 
 // 404 에러 핸들러
 app.use('*', (req, res) => {
@@ -75,7 +91,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // 서버 시작
 const startServer = async () => {
   try {
-    // SQLite 데이터베이스 연결
+    // MySQL 데이터베이스 연결
     await connectDatabase();
 
     app.listen(PORT, () => {

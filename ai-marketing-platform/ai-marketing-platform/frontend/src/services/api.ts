@@ -11,7 +11,7 @@ const api = axios.create({
   },
 });
 
-// 요청 인터셉터 (토큰 자동 추가)
+// 요청 인터셉터 - 토큰 추가
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -25,14 +25,14 @@ api.interceptors.request.use(
   }
 );
 
-// 응답 인터셉터 (에러 처리)
+// 응답 인터셉터 - 토큰 만료 처리
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
-      // 토큰 만료 시 로그아웃
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -41,74 +41,34 @@ api.interceptors.response.use(
 
 // 인증 API
 export const authAPI = {
-  // 로그인
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
-  },
-
-  // 회원가입
-  register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', data);
-    return response.data;
-  },
-
-  // 프로필 조회
-  getProfile: async (): Promise<{ user: User }> => {
-    const response = await api.get('/auth/profile');
-    return response.data;
-  },
-
-  // 프로필 수정
-  updateProfile: async (data: Partial<User>): Promise<{ message: string; user: User }> => {
-    const response = await api.put('/auth/profile', data);
-    return response.data;
-  },
+  login: (credentials: LoginCredentials) => api.post<AuthResponse>('/auth/login', credentials),
+  register: (data: RegisterData) => api.post<AuthResponse>('/auth/register', data),
+  getProfile: () => api.get<{ user: User }>('/auth/profile'),
 };
 
 // 캠페인 API
 export const campaignAPI = {
-  // 캠페인 목록 조회
-  getCampaigns: async (params?: { status?: string; page?: number; limit?: number }) => {
-    const response = await api.get('/campaigns', { params });
-    return response.data;
-  },
+  getCampaigns: () => api.get('/campaigns'),
+  createCampaign: (data: any) => api.post('/campaigns', data),
+  getCampaign: (id: string) => api.get(`/campaigns/${id}`),
+  updateCampaign: (id: string, data: any) => api.put(`/campaigns/${id}`, data),
+  deleteCampaign: (id: string) => api.delete(`/campaigns/${id}`),
+  updateCampaignStatus: (id: string, status: string) => api.patch(`/campaigns/${id}/status`, { status }),
+  updateAIContent: (id: string, content: any) => api.patch(`/campaigns/${id}/ai-content`, content),
+};
 
-  // 캠페인 생성
-  createCampaign: async (data: any) => {
-    const response = await api.post('/campaigns', data);
-    return response.data;
-  },
-
-  // 캠페인 조회
-  getCampaign: async (id: string) => {
-    const response = await api.get(`/campaigns/${id}`);
-    return response.data;
-  },
-
-  // 캠페인 수정
-  updateCampaign: async (id: string, data: any) => {
-    const response = await api.put(`/campaigns/${id}`, data);
-    return response.data;
-  },
-
-  // 캠페인 삭제
-  deleteCampaign: async (id: string) => {
-    const response = await api.delete(`/campaigns/${id}`);
-    return response.data;
-  },
-
-  // 캠페인 상태 변경
-  updateCampaignStatus: async (id: string, status: string) => {
-    const response = await api.patch(`/campaigns/${id}/status`, { status });
-    return response.data;
-  },
-
-  // AI 콘텐츠 업데이트
-  updateAIContent: async (id: string, aiContent: any) => {
-    const response = await api.patch(`/campaigns/${id}/ai-content`, { aiContent });
-    return response.data;
-  },
+// AI 콘텐츠 API
+export const aiContentAPI = {
+  generateContent: (data: {
+    type: string;
+    platform?: string;
+    targetAudience: string;
+    productInfo: string;
+    tone: string;
+  }) => api.post('/ai-content', data),
+  getContent: () => api.get('/ai-content'),
+  getContentById: (id: string) => api.get(`/ai-content/${id}`),
+  deleteContent: (id: string) => api.delete(`/ai-content/${id}`),
 };
 
 export default api; 

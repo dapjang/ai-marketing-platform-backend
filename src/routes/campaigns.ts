@@ -8,7 +8,7 @@ import {
   updateCampaignStatus,
   updateAIContent
 } from '../controllers/campaignController';
-import { auth, requireMarketer } from '../middleware/auth';
+import { auth, requireUser } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -16,12 +16,12 @@ const router = express.Router();
 router.use(auth);
 
 // 캠페인 관리 라우트
-router.post('/', requireMarketer, createCampaign);
+router.post('/', requireUser, createCampaign);
 router.get('/', getUserCampaigns);
 router.get('/:id', getCampaign);
-router.put('/:id', requireMarketer, updateCampaign);
-router.delete('/:id', requireMarketer, deleteCampaign);
-router.patch('/:id/status', requireMarketer, updateCampaignStatus);
-router.patch('/:id/ai-content', requireMarketer, updateAIContent);
+router.put('/:id', requireUser, updateCampaign);
+router.delete('/:id', requireUser, deleteCampaign);
+router.patch('/:id/status', requireUser, updateCampaignStatus);
+router.patch('/:id/ai-content', requireUser, updateAIContent);
 
 export default router; 

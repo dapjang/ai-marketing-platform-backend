@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Campaigns from './pages/Campaigns'
+import CampaignDetail from './pages/CampaignDetail'
 import Profile from './pages/Profile'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -18,6 +19,7 @@ function App() {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="campaigns" element={<Campaigns />} />
+              <Route path="campaigns/:id" element={<CampaignDetail />} />
               <Route path="profile" element={<Profile />} />
             </Route>
           </Routes>

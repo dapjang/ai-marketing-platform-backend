@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { query } from '../config/database-sqlite';
+import { query } from '../config/database';
 
 // 사용자 정보를 포함한 Request 인터페이스 확장
 export interface AuthRequest extends Request {

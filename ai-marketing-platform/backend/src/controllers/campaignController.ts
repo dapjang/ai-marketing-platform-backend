@@ -1,4 +1,5 @@
 import { Response } from 'express';
+
 // MongoDB 없이 작동하도록 Campaign 모델 import 제거
 
 // 캠페인 생성 (MongoDB 없이 작동)
@@ -98,46 +99,39 @@ export const updateCampaign = async (req: any, res: Response): Promise<void> => 
 // 캠페인 삭제 (MongoDB 없이 작동)
 export const deleteCampaign = async (req: any, res: Response): Promise<void> => {
   try {
-    res.json({ message: '캠페인이 삭제되었습니다. (MongoDB 없이 작동)' });
-  } catch (error) {
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  }
-};
-
-// 캠페인 상태 변경 (MongoDB 없이 작동)
-export const updateCampaignStatus = async (req: any, res: Response): Promise<void> => {
-  try {
-    const { status } = req.body;
-
-    const campaign = {
-      _id: req.params.id,
-      status,
-      updatedAt: new Date().toISOString()
-    };
-
     res.json({
-      message: '캠페인 상태가 업데이트되었습니다. (MongoDB 없이 작동)',
-      campaign
+      message: '캠페인이 삭제되었습니다. (MongoDB 없이 작동)',
+      id: req.params.id
     });
   } catch (error) {
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
-// AI 생성 콘텐츠 업데이트 (MongoDB 없이 작동)
+// 캠페인 상태 업데이트 (MongoDB 없이 작동)
+export const updateCampaignStatus = async (req: any, res: Response): Promise<void> => {
+  try {
+    const { status } = req.body;
+    
+    res.json({
+      message: '캠페인 상태가 업데이트되었습니다. (MongoDB 없이 작동)',
+      id: req.params.id,
+      status
+    });
+  } catch (error) {
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
+
+// AI 콘텐츠 업데이트 (MongoDB 없이 작동)
 export const updateAIContent = async (req: any, res: Response): Promise<void> => {
   try {
-    const { aiGeneratedContent } = req.body;
-
-    const campaign = {
-      _id: req.params.id,
-      aiGeneratedContent,
-      updatedAt: new Date().toISOString()
-    };
-
+    const { content } = req.body;
+    
     res.json({
-      message: 'AI 생성 콘텐츠가 업데이트되었습니다. (MongoDB 없이 작동)',
-      campaign
+      message: 'AI 콘텐츠가 업데이트되었습니다. (MongoDB 없이 작동)',
+      id: req.params.id,
+      content
     });
   } catch (error) {
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
