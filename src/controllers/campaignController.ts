@@ -1,10 +1,17 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Campaign } from '../models/Campaign';
 
 // 캠페인 생성
-export const createCampaign = async (req: any, res: Response) => {
+export const createCampaign = async (req: any, res: Response): Promise<void> => {
   try {
-    const { title, description, budget, targetAudience, startDate, endDate } = req.body;
+    const { 
+      title, 
+      description, 
+      budget, 
+      targetAudience, 
+      startDate, 
+      endDate 
+    } = req.body;
     
     const campaign = new Campaign({
       title,
@@ -22,24 +29,26 @@ export const createCampaign = async (req: any, res: Response) => {
       campaign
     });
   } catch (error) {
+    console.error('캠페인 생성 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
 // 사용자의 캠페인 목록 조회
-export const getUserCampaigns = async (req: any, res: Response) => {
+export const getUserCampaigns = async (req: any, res: Response): Promise<void> => {
   try {
     const campaigns = await Campaign.find({ userId: req.user._id })
       .sort({ createdAt: -1 });
     
     res.json({ campaigns });
   } catch (error) {
+    console.error('캠페인 목록 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
 // 특정 캠페인 조회
-export const getCampaign = async (req: any, res: Response) => {
+export const getCampaign = async (req: any, res: Response): Promise<void> => {
   try {
     const campaign = await Campaign.findOne({
       _id: req.params.id,
@@ -47,17 +56,19 @@ export const getCampaign = async (req: any, res: Response) => {
     });
 
     if (!campaign) {
-      return res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      return;
     }
 
     res.json({ campaign });
   } catch (error) {
+    console.error('캠페인 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
 // 캠페인 업데이트
-export const updateCampaign = async (req: any, res: Response) => {
+export const updateCampaign = async (req: any, res: Response): Promise<void> => {
   try {
     const campaign = await Campaign.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
@@ -66,7 +77,8 @@ export const updateCampaign = async (req: any, res: Response) => {
     );
 
     if (!campaign) {
-      return res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      return;
     }
 
     res.json({
@@ -74,12 +86,13 @@ export const updateCampaign = async (req: any, res: Response) => {
       campaign
     });
   } catch (error) {
+    console.error('캠페인 업데이트 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
 // 캠페인 삭제
-export const deleteCampaign = async (req: any, res: Response) => {
+export const deleteCampaign = async (req: any, res: Response): Promise<void> => {
   try {
     const campaign = await Campaign.findOneAndDelete({
       _id: req.params.id,
@@ -87,17 +100,19 @@ export const deleteCampaign = async (req: any, res: Response) => {
     });
 
     if (!campaign) {
-      return res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      return;
     }
 
     res.json({ message: '캠페인이 삭제되었습니다.' });
   } catch (error) {
+    console.error('캠페인 삭제 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
 // 캠페인 상태 업데이트
-export const updateCampaignStatus = async (req: any, res: Response) => {
+export const updateCampaignStatus = async (req: any, res: Response): Promise<void> => {
   try {
     const { status } = req.body;
     
@@ -108,7 +123,8 @@ export const updateCampaignStatus = async (req: any, res: Response) => {
     );
 
     if (!campaign) {
-      return res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      return;
     }
 
     res.json({
@@ -116,12 +132,13 @@ export const updateCampaignStatus = async (req: any, res: Response) => {
       campaign
     });
   } catch (error) {
+    console.error('캠페인 상태 업데이트 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 };
 
 // AI 콘텐츠 업데이트
-export const updateAIContent = async (req: any, res: Response) => {
+export const updateAIContent = async (req: any, res: Response): Promise<void> => {
   try {
     const { aiContent } = req.body;
     
@@ -132,7 +149,8 @@ export const updateAIContent = async (req: any, res: Response) => {
     );
 
     if (!campaign) {
-      return res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      res.status(404).json({ message: '캠페인을 찾을 수 없습니다.' });
+      return;
     }
 
     res.json({
@@ -140,6 +158,7 @@ export const updateAIContent = async (req: any, res: Response) => {
       campaign
     });
   } catch (error) {
+    console.error('AI 콘텐츠 업데이트 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 }; 

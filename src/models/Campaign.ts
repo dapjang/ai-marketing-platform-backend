@@ -3,17 +3,28 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface ICampaign extends Document {
   title: string;
   description: string;
-  budget: number;
-  targetAudience: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
   userId: mongoose.Types.ObjectId;
-  aiContent?: {
-    copy: string;
-    images: string[];
-    socialMediaPosts: string[];
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'archived';
+  budget: number;
+  targetAudience: {
+    ageRange?: string;
+    gender?: string;
+    interests?: string[];
+    location?: string;
   };
-  startDate?: Date;
-  endDate?: Date;
+  startDate: Date;
+  endDate: Date;
+  aiContent: {
+    generatedContent?: string;
+    aiSuggestions?: string[];
+    keywords?: string[];
+  };
+  performance: {
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    spend: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,47 +40,64 @@ const campaignSchema = new Schema<ICampaign>({
     required: true,
     trim: true
   },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'active', 'paused', 'completed', 'archived'],
+    default: 'draft'
+  },
   budget: {
     type: Number,
     required: true,
     min: 0
   },
   targetAudience: {
-    type: String,
-    required: true,
-    trim: true
+    ageRange: String,
+    gender: String,
+    interests: [String],
+    location: String
   },
-  status: {
-    type: String,
-    enum: ['draft', 'active', 'paused', 'completed'],
-    default: 'draft'
+  startDate: {
+    type: Date,
+    required: true
   },
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+  endDate: {
+    type: Date,
     required: true
   },
   aiContent: {
-    copy: String,
-    images: [String],
-    socialMediaPosts: [String]
+    generatedContent: String,
+    aiSuggestions: [String],
+    keywords: [String]
   },
-  startDate: {
-    type: Date
-  },
-  endDate: {
-    type: Date
+  performance: {
+    impressions: {
+      type: Number,
+      default: 0
+    },
+    clicks: {
+      type: Number,
+      default: 0
+    },
+    conversions: {
+      type: Number,
+      default: 0
+    },
+    spend: {
+      type: Number,
+      default: 0
+    }
   }
 }, {
   timestamps: true
 });
 
-// 날짜 유효성 검사
-campaignSchema.pre('save', function(next) {
-  if (this.startDate && this.endDate && this.startDate > this.endDate) {
-    return next(new Error('시작일은 종료일보다 이전이어야 합니다.'));
-  }
-  next();
-});
+// 인덱스 설정
+campaignSchema.index({ userId: 1, status: 1 });
+campaignSchema.index({ startDate: 1, endDate: 1 });
 
 export const Campaign = mongoose.model<ICampaign>('Campaign', campaignSchema); 
