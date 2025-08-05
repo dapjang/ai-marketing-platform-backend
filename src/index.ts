@@ -63,6 +63,19 @@ app.get('/health', (req, res) => {
 });
 
 // API 라우트
+app.get('/api', (req, res) => {
+  res.json({ 
+    message: 'AI 마케팅 플랫폼 API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      campaigns: '/api/campaigns',
+      aiContent: '/api/ai-content'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/ai-content', aiContentRoutes);
