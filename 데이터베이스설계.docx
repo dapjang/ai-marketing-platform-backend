@@ -1,0 +1,437 @@
+데이터베이스 설계
+
+목차
+1. 개요
+2. 데이터베이스 아키텍처
+3. 테이블 설계
+4. 관계 설계
+5. 인덱스 설계
+6. 보안 설계
+7. 백업 및 복구 전략
+8. 성능 최적화
+
+1. 개요
+본 문서는 AI 마케팅 지원 플랫폼의 데이터베이스 설계를 정의합니다.
+MongoDB를 기반으로 한 NoSQL 데이터베이스 구조를 설계하여 확장성과 유연성을 확보합니다.
+
+2. 데이터베이스 아키텍처
+
+2.1 전체 구조
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MongoDB Cluster                         │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│   Users DB      │   Content DB    │   Analytics DB         │
+│   (사용자 관리)   │   (콘텐츠 관리)   │   (분석 데이터)        │
+└─────────────────┴─────────────────┴─────────────────────────┘
+         │                   │                   │
+         ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│   User Data     │ │   Content Data  │ │   Analytics     │
+│   Collections   │ │   Collections   │ │   Collections   │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+2.2 데이터베이스 분리 전략
+- Users DB: 사용자 계정, 권한, 프로필 관리
+- Content DB: 입력폼 데이터, AI 생성 콘텐츠, 기획서
+- Analytics DB: 사용자 행동, 성과 분석, 통계 데이터
+
+3. 테이블 설계
+
+3.1 Users DB Collections
+
+3.1.1 users (사용자 정보)
+```json
+{
+  "_id": "ObjectId",
+  "email": "String (unique)",
+  "password": "String (hashed)",
+  "userType": "String (franchise|general)",
+  "status": "String (active|inactive|suspended)",
+  "profile": {
+    "name": "String",
+    "phone": "String",
+    "company": "String",
+    "position": "String",
+    "businessType": "String",
+    "businessSize": "String"
+  },
+  "subscription": {
+    "plan": "String (basic|premium|enterprise)",
+    "startDate": "Date",
+    "endDate": "Date",
+    "status": "String (active|expired|cancelled)"
+  },
+  "permissions": ["String"],
+  "createdAt": "Date",
+  "updatedAt": "Date",
+  "lastLoginAt": "Date"
+}
+```
+
+3.1.2 user_sessions (사용자 세션)
+```json
+{
+  "_id": "ObjectId",
+  "userId": "ObjectId (ref: users)",
+  "sessionToken": "String",
+  "ipAddress": "String",
+  "userAgent": "String",
+  "createdAt": "Date",
+  "expiresAt": "Date",
+  "isActive": "Boolean"
+}
+```
+
+3.1.3 franchise_operators (분양 사업자)
+```json
+{
+  "_id": "ObjectId",
+  "userId": "ObjectId (ref: users)",
+  "franchiseInfo": {
+    "franchiseName": "String",
+    "businessNumber": "String",
+    "address": "String",
+    "contactPerson": "String",
+    "contactPhone": "String"
+  },
+  "salesAgents": ["ObjectId (ref: users)"],
+  "commissionRate": "Number",
+  "territory": "String",
+  "status": "String (active|inactive)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
+
+3.2 Content DB Collections
+
+3.2.1 input_forms (입력폼 데이터)
+```json
+{
+  "_id": "ObjectId",
+  "userId": "ObjectId (ref: users)",
+  "formType": "String (business|branding|marketing|homepage)",
+  "formData": {
+    "businessInfo": {
+      "companyName": "String",
+      "businessType": "String",
+      "mainServices": "String",
+      "targetCustomers": "String",
+      "competitiveAdvantage": "String",
+      "businessGoals": "String"
+    },
+    "contactInfo": {
+      "phone": "String",
+      "email": "String",
+      "address": "String",
+      "website": "String"
+    },
+    "marketingInfo": {
+      "currentMarketing": "String",
+      "budget": "String",
+      "preferredChannels": "String",
+      "successMetrics": "String"
+    },
+    "images": ["String (file URLs)"]
+  },
+  "status": "String (draft|submitted|processing|completed)",
+  "createdAt": "Date",
+  "updatedAt": "Date",
+  "submittedAt": "Date"
+}
+```
+
+3.2.2 ai_generated_content (AI 생성 콘텐츠)
+```json
+{
+  "_id": "ObjectId",
+  "inputFormId": "ObjectId (ref: input_forms)",
+  "userId": "ObjectId (ref: users)",
+  "generationType": "String (1st_generation|2nd_generation|3rd_generation)",
+  "contentType": "String (business_plan|branding_plan|marketing_plan|homepage_plan)",
+  "generatedContent": {
+    "rawData": "Object",
+    "processedData": "Object",
+    "strategies": "Object",
+    "recommendations": "Object"
+  },
+  "promptUsed": "String",
+  "aiModel": "String",
+  "generationTime": "Number (seconds)",
+  "qualityScore": "Number (0-100)",
+  "status": "String (generating|completed|failed)",
+  "createdAt": "Date",
+  "completedAt": "Date"
+}
+```
+
+3.2.3 documents (생성된 기획서)
+```json
+{
+  "_id": "ObjectId",
+  "userId": "ObjectId (ref: users)",
+  "inputFormId": "ObjectId (ref: input_forms)",
+  "aiContentId": "ObjectId (ref: ai_generated_content)",
+  "documentType": "String (business_plan|branding_plan|marketing_plan|homepage_plan)",
+  "documentData": {
+    "title": "String",
+    "sections": ["Object"],
+    "summary": "String",
+    "recommendations": ["String"]
+  },
+  "fileUrls": {
+    "hwp": "String",
+    "pdf": "String",
+    "ppt": "String"
+  },
+  "status": "String (generating|completed|failed)",
+  "downloadCount": "Number",
+  "createdAt": "Date",
+  "updatedAt": "Date",
+  "completedAt": "Date"
+}
+```
+
+3.2.4 templates (기획서 템플릿)
+```json
+{
+  "_id": "ObjectId",
+  "templateType": "String (business_plan|branding_plan|marketing_plan|homepage_plan)",
+  "industry": "String",
+  "businessSize": "String",
+  "templateName": "String",
+  "templateStructure": {
+    "sections": ["Object"],
+    "requiredFields": ["String"],
+    "optionalFields": ["String"]
+  },
+  "promptTemplate": "String",
+  "isActive": "Boolean",
+  "version": "String",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
+
+3.3 Analytics DB Collections
+
+3.3.1 user_analytics (사용자 분석)
+```json
+{
+  "_id": "ObjectId",
+  "userId": "ObjectId (ref: users)",
+  "date": "Date",
+  "metrics": {
+    "loginCount": "Number",
+    "sessionDuration": "Number",
+    "formSubmissions": "Number",
+    "documentGenerations": "Number",
+    "downloads": "Number"
+  },
+  "actions": ["Object"],
+  "createdAt": "Date"
+}
+```
+
+3.3.2 system_analytics (시스템 분석)
+```json
+{
+  "_id": "ObjectId",
+  "date": "Date",
+  "metrics": {
+    "totalUsers": "Number",
+    "activeUsers": "Number",
+    "newRegistrations": "Number",
+    "documentGenerations": "Number",
+    "aiApiCalls": "Number",
+    "errorRate": "Number"
+  },
+  "performance": {
+    "averageResponseTime": "Number",
+    "serverLoad": "Number",
+    "memoryUsage": "Number"
+  },
+  "createdAt": "Date"
+}
+```
+
+3.3.3 ai_performance (AI 성능 분석)
+```json
+{
+  "_id": "ObjectId",
+  "date": "Date",
+  "model": "String",
+  "metrics": {
+    "totalRequests": "Number",
+    "successfulRequests": "Number",
+    "failedRequests": "Number",
+    "averageResponseTime": "Number",
+    "costPerRequest": "Number"
+  },
+  "qualityMetrics": {
+    "userSatisfaction": "Number",
+    "revisionRequests": "Number",
+    "completionRate": "Number"
+  },
+  "createdAt": "Date"
+}
+```
+
+4. 관계 설계
+
+4.1 주요 관계
+```
+users (1) ──── (N) input_forms
+users (1) ──── (N) ai_generated_content
+users (1) ──── (N) documents
+users (1) ──── (N) user_analytics
+
+input_forms (1) ──── (N) ai_generated_content
+input_forms (1) ──── (N) documents
+
+ai_generated_content (1) ──── (1) documents
+
+templates (1) ──── (N) ai_generated_content
+```
+
+4.2 참조 전략
+- 직접 참조: 자주 조회되는 관계 (users → input_forms)
+- 임베딩: 일대일 관계나 자주 함께 조회되는 데이터
+- 조인: 복잡한 쿼리나 집계가 필요한 경우
+
+5. 인덱스 설계
+
+5.1 Users DB 인덱스
+```javascript
+// users collection
+db.users.createIndex({ "email": 1 }, { unique: true })
+db.users.createIndex({ "userType": 1 })
+db.users.createIndex({ "status": 1 })
+db.users.createIndex({ "createdAt": -1 })
+
+// user_sessions collection
+db.user_sessions.createIndex({ "sessionToken": 1 }, { unique: true })
+db.user_sessions.createIndex({ "userId": 1 })
+db.user_sessions.createIndex({ "expiresAt": 1 })
+
+// franchise_operators collection
+db.franchise_operators.createIndex({ "userId": 1 }, { unique: true })
+db.franchise_operators.createIndex({ "status": 1 })
+```
+
+5.2 Content DB 인덱스
+```javascript
+// input_forms collection
+db.input_forms.createIndex({ "userId": 1 })
+db.input_forms.createIndex({ "formType": 1 })
+db.input_forms.createIndex({ "status": 1 })
+db.input_forms.createIndex({ "createdAt": -1 })
+
+// ai_generated_content collection
+db.ai_generated_content.createIndex({ "inputFormId": 1 })
+db.ai_generated_content.createIndex({ "userId": 1 })
+db.ai_generated_content.createIndex({ "generationType": 1 })
+db.ai_generated_content.createIndex({ "status": 1 })
+
+// documents collection
+db.documents.createIndex({ "userId": 1 })
+db.documents.createIndex({ "documentType": 1 })
+db.documents.createIndex({ "status": 1 })
+db.documents.createIndex({ "createdAt": -1 })
+
+// templates collection
+db.templates.createIndex({ "templateType": 1 })
+db.templates.createIndex({ "industry": 1 })
+db.templates.createIndex({ "isActive": 1 })
+```
+
+5.3 Analytics DB 인덱스
+```javascript
+// user_analytics collection
+db.user_analytics.createIndex({ "userId": 1, "date": -1 })
+db.user_analytics.createIndex({ "date": -1 })
+
+// system_analytics collection
+db.system_analytics.createIndex({ "date": -1 })
+
+// ai_performance collection
+db.ai_performance.createIndex({ "date": -1 })
+db.ai_performance.createIndex({ "model": 1, "date": -1 })
+```
+
+6. 보안 설계
+
+6.1 데이터 암호화
+- 민감한 데이터 (비밀번호, 개인정보) 암호화 저장
+- 전송 중 데이터 SSL/TLS 암호화
+- 백업 데이터 암호화
+
+6.2 접근 제어
+- 사용자별 데이터 접근 권한 설정
+- API 키 기반 인증
+- 세션 기반 인증
+- 역할 기반 접근 제어 (RBAC)
+
+6.3 데이터 보호
+- 개인정보 처리방침 준수
+- 데이터 보관 기간 설정
+- 데이터 삭제 정책 수립
+- GDPR 준수
+
+7. 백업 및 복구 전략
+
+7.1 백업 전략
+- 일일 전체 백업
+- 시간별 증분 백업
+- 클라우드 백업 저장
+- 백업 데이터 암호화
+
+7.2 복구 전략
+- RTO (Recovery Time Objective): 4시간
+- RPO (Recovery Point Objective): 1시간
+- 자동 복구 시스템 구축
+- 복구 테스트 정기 수행
+
+7.3 재해 복구
+- 다중 지역 백업
+- 자동 장애 조치 시스템
+- 재해 복구 절차 문서화
+- 정기 재해 복구 훈련
+
+8. 성능 최적화
+
+8.1 쿼리 최적화
+- 인덱스 활용 최적화
+- 쿼리 실행 계획 분석
+- 집계 파이프라인 최적화
+- 읽기/쓰기 분리
+
+8.2 스토리지 최적화
+- 데이터 압축
+- 불필요한 데이터 정리
+- 파티셔닝 전략
+- 샤딩 전략
+
+8.3 캐싱 전략
+- Redis 캐싱 레이어
+- 자주 조회되는 데이터 캐싱
+- API 응답 캐싱
+- 세션 데이터 캐싱
+
+9. 모니터링 및 관리
+
+9.1 성능 모니터링
+- 쿼리 성능 모니터링
+- 시스템 리소스 모니터링
+- 사용자 활동 모니터링
+- 오류 로그 모니터링
+
+9.2 알림 시스템
+- 성능 임계값 알림
+- 오류 발생 알림
+- 백업 실패 알림
+- 보안 이벤트 알림
+
+이 데이터베이스 설계를 바탕으로 확장 가능하고 안정적인 플랫폼을 구축할 수 있습니다. 

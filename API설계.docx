@@ -1,0 +1,275 @@
+API 설계
+
+목차
+1. 개요
+2. API 아키텍처
+3. 인증 및 보안
+4. 엔드포인트 설계
+5. 요청/응답 형식
+6. 에러 처리
+7. 문서화
+
+1. 개요
+본 문서는 AI 마케팅 지원 플랫폼의 RESTful API 설계를 정의합니다.
+사용자 관리, 입력폼 처리, AI 콘텐츠 생성, 기획서 생성 등의 기능을 제공하는 API를 설계합니다.
+
+2. API 아키텍처
+
+2.1 전체 구조
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   API Gateway   │    │   Backend       │
+│   (React/Vue)   │◄──►│   (Rate Limit)  │◄──►│   (Node.js)     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Auth Service  │    │   AI Service    │
+                       │   (JWT)         │    │   (OpenAI)      │
+                       └─────────────────┘    └─────────────────┘
+```
+
+2.2 API 버전 관리
+- URL 기반 버전 관리: `/api/v1/`
+- 헤더 기반 버전 관리: `Accept: application/vnd.api+json;version=1`
+
+3. 인증 및 보안
+
+3.1 인증 방식
+- JWT (JSON Web Token) 기반 인증
+- API 키 인증 (AI 서비스용)
+- 세션 기반 인증 (선택사항)
+
+3.2 보안 정책
+- HTTPS 필수
+- CORS 정책 설정
+- Rate Limiting 적용
+- 입력 데이터 검증
+- SQL Injection 방지
+
+4. 엔드포인트 설계
+
+4.1 인증 관련 API
+```
+POST   /api/v1/auth/register          # 회원가입
+POST   /api/v1/auth/login             # 로그인
+POST   /api/v1/auth/logout            # 로그아웃
+POST   /api/v1/auth/refresh           # 토큰 갱신
+POST   /api/v1/auth/forgot-password   # 비밀번호 찾기
+POST   /api/v1/auth/reset-password    # 비밀번호 재설정
+GET    /api/v1/auth/profile           # 프로필 조회
+PUT    /api/v1/auth/profile           # 프로필 수정
+```
+
+4.2 사용자 관리 API
+```
+GET    /api/v1/users                  # 사용자 목록 (관리자)
+GET    /api/v1/users/:id              # 사용자 상세 정보
+PUT    /api/v1/users/:id              # 사용자 정보 수정
+DELETE /api/v1/users/:id              # 사용자 삭제
+GET    /api/v1/users/:id/subscription # 구독 정보 조회
+PUT    /api/v1/users/:id/subscription # 구독 정보 수정
+```
+
+4.3 입력폼 관련 API
+```
+GET    /api/v1/forms                  # 입력폼 목록
+POST   /api/v1/forms                  # 입력폼 생성
+GET    /api/v1/forms/:id              # 입력폼 상세
+PUT    /api/v1/forms/:id              # 입력폼 수정
+DELETE /api/v1/forms/:id              # 입력폼 삭제
+POST   /api/v1/forms/:id/submit       # 입력폼 제출
+GET    /api/v1/forms/:id/status       # 입력폼 상태 조회
+```
+
+4.4 AI 콘텐츠 생성 API
+```
+POST   /api/v1/ai/generate            # AI 콘텐츠 생성
+GET    /api/v1/ai/generations         # 생성 이력 조회
+GET    /api/v1/ai/generations/:id     # 생성 결과 상세
+POST   /api/v1/ai/generations/:id/revise # 콘텐츠 수정 요청
+DELETE /api/v1/ai/generations/:id     # 생성 결과 삭제
+```
+
+4.5 기획서 관련 API
+```
+GET    /api/v1/documents              # 기획서 목록
+POST   /api/v1/documents              # 기획서 생성
+GET    /api/v1/documents/:id          # 기획서 상세
+PUT    /api/v1/documents/:id          # 기획서 수정
+DELETE /api/v1/documents/:id          # 기획서 삭제
+GET    /api/v1/documents/:id/download # 기획서 다운로드
+POST   /api/v1/documents/:id/share    # 기획서 공유
+```
+
+4.6 템플릿 관련 API
+```
+GET    /api/v1/templates              # 템플릿 목록
+GET    /api/v1/templates/:id          # 템플릿 상세
+POST   /api/v1/templates              # 템플릿 생성 (관리자)
+PUT    /api/v1/templates/:id          # 템플릿 수정 (관리자)
+DELETE /api/v1/templates/:id          # 템플릿 삭제 (관리자)
+```
+
+4.7 파일 업로드 API
+```
+POST   /api/v1/upload/image           # 이미지 업로드
+POST   /api/v1/upload/document        # 문서 업로드
+DELETE /api/v1/upload/:filename       # 파일 삭제
+```
+
+4.8 분석 및 통계 API
+```
+GET    /api/v1/analytics/user         # 사용자 분석
+GET    /api/v1/analytics/system       # 시스템 분석
+GET    /api/v1/analytics/ai           # AI 성능 분석
+GET    /api/v1/analytics/documents    # 기획서 분석
+```
+
+5. 요청/응답 형식
+
+5.1 표준 요청 형식
+```json
+{
+  "data": {
+    "type": "resource_type",
+    "id": "resource_id",
+    "attributes": {
+      "field1": "value1",
+      "field2": "value2"
+    },
+    "relationships": {
+      "related_resource": {
+        "data": {
+          "type": "related_type",
+          "id": "related_id"
+        }
+      }
+    }
+  },
+  "meta": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "version": "1.0"
+  }
+}
+```
+
+5.2 표준 응답 형식
+```json
+{
+  "data": {
+    "type": "resource_type",
+    "id": "resource_id",
+    "attributes": {
+      "field1": "value1",
+      "field2": "value2"
+    },
+    "relationships": {
+      "related_resource": {
+        "data": {
+          "type": "related_type",
+          "id": "related_id"
+        }
+      }
+    }
+  },
+  "meta": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "version": "1.0"
+  },
+  "links": {
+    "self": "/api/v1/resource/id",
+    "related": "/api/v1/related-resource"
+  }
+}
+```
+
+5.3 에러 응답 형식
+```json
+{
+  "errors": [
+    {
+      "status": "400",
+      "code": "VALIDATION_ERROR",
+      "title": "Validation Error",
+      "detail": "Field 'email' is required",
+      "source": {
+        "pointer": "/data/attributes/email"
+      }
+    }
+  ],
+  "meta": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "version": "1.0"
+  }
+}
+```
+
+6. 에러 처리
+
+6.1 HTTP 상태 코드
+- 200: 성공
+- 201: 생성 성공
+- 400: 잘못된 요청
+- 401: 인증 실패
+- 403: 권한 없음
+- 404: 리소스 없음
+- 422: 검증 실패
+- 429: 요청 제한 초과
+- 500: 서버 오류
+
+6.2 에러 코드 정의
+```
+AUTH_001: 인증 토큰 없음
+AUTH_002: 토큰 만료
+AUTH_003: 잘못된 토큰
+AUTH_004: 권한 부족
+
+USER_001: 사용자 없음
+USER_002: 이메일 중복
+USER_003: 잘못된 비밀번호
+
+FORM_001: 입력폼 없음
+FORM_002: 필수 필드 누락
+FORM_003: 잘못된 데이터 형식
+
+AI_001: AI 서비스 오류
+AI_002: 생성 실패
+AI_003: 비용 초과
+
+DOC_001: 문서 없음
+DOC_002: 생성 실패
+DOC_003: 다운로드 실패
+```
+
+7. 문서화
+
+7.1 API 문서화 도구
+- Swagger/OpenAPI 3.0
+- Postman Collection
+- API Blueprint
+
+7.2 문서화 내용
+- 엔드포인트 설명
+- 요청/응답 예시
+- 에러 코드 설명
+- 인증 방법
+- Rate Limiting 정책
+
+8. 성능 최적화
+
+8.1 캐싱 전략
+- Redis 캐싱
+- HTTP 캐시 헤더
+- CDN 활용
+
+8.2 압축
+- Gzip 압축
+- 응답 크기 최적화
+
+8.3 Rate Limiting
+- 사용자별 제한
+- IP별 제한
+- 엔드포인트별 제한
+
+이 API 설계를 바탕으로 안정적이고 확장 가능한 백엔드 시스템을 구축할 수 있습니다. 
